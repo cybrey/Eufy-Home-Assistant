@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.17
+
+- Verify the NVR's DTLS certificate fingerprint over its raw DER bytes instead of parsing it with `cryptography`.
+  Firmware whose certificate carries extra signature-algorithm parameters was rejected with
+  `ParseError { kind: ExtraData ... signature_alg }`, so the peer never connected and discovery failed.
+
 ## 0.7.16
 
 - Validate the persisted account-bound token against `ws/sign` before logging in. Container restarts and periodic
