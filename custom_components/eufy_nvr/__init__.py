@@ -14,7 +14,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN, FRAME_SETUP_PRIME_TIMEOUT
@@ -72,7 +72,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: EufyNvrConfigEntry) -> b
         coordinator.async_prime_frames_forever(),
         f"{DOMAIN} snapshot primer",
     )
-    entry.async_on_unload(primer.cancel)
+
+    @callback
+    def _cancel_primer() -> None:
+        # Task.cancel() returns True; HA requires unload callbacks to return None.
+        primer.cancel()
+
+    entry.async_on_unload(_cancel_primer)
     return True
 
 
