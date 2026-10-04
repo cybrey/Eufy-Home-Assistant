@@ -36,6 +36,31 @@ def _broad_ssl_ctx(self, srtp_profiles):
     return ctx
 _RTCCert._create_ssl_context = _broad_ssl_ctx
 
+# Some NVR firmware presents a DTLS cert with a non-DER signature AlgorithmIdentifier (extra
+# params). cryptography's strict parser rejects it ("ParseError { kind: ExtraData ...
+# signature_alg }") inside aiortc's fingerprint check, so the peer never connects. The SDP
+# fingerprint is just a hash of the cert's DER bytes, so verify it without parsing the cert.
+from OpenSSL import crypto as _ossl_crypto
+from aiortc import rtcdtlstransport as _dtls
+_FP_HASHES = {"sha-256": "sha256", "sha-384": "sha384", "sha-512": "sha512"}
+def _validate_peer_identity_raw(self, remoteParameters):
+    cert = self._ssl.get_peer_certificate()
+    if cert is None:
+        self._set_state(_dtls.State.FAILED)
+        return
+    der = _ossl_crypto.dump_certificate(_ossl_crypto.FILETYPE_ASN1, cert)
+    supported = valid = 0
+    for f in remoteParameters.fingerprints:
+        name = _FP_HASHES.get(f.algorithm.lower())
+        if name:
+            supported += 1
+            digest = hashlib.new(name, der).hexdigest().upper()
+            if f.value.upper() == ":".join(digest[i:i + 2] for i in range(0, len(digest), 2)):
+                valid += 1
+    if not supported or valid != supported:
+        self._set_state(_dtls.State.FAILED)
+_dtls.RTCDtlsTransport._validate_peer_identity = _validate_peer_identity_raw
+
 ROOT = os.path.dirname(os.path.abspath(__file__))   # the bridge/ directory
 def _bin(name):
     exe = name + (".exe" if os.name == "nt" else "")
