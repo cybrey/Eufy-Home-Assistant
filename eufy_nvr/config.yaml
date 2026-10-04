@@ -1,5 +1,5 @@
 name: Eufy NVR Local (experimental)
-version: "0.7.18"
+version: "0.7.19"
 slug: eufy_nvr
 description: Local live video from a eufy PoE NVR (S4 / T8N00) over reversed WebRTC, served as RTSP/WebRTC for Home Assistant. No cloud media, no Frigate.
 url: https://github.com/HallyAus/Eufy-Home-Assistant
@@ -92,6 +92,10 @@ schema:
   #   view shows the still thumbnail only). The adaptive warmer itself never adds a transcode.
   video_copy: bool?
   station_sn: str?
+  # exclude_streams: comma-separated stream names to leave out of go2rtc, e.g.
+  #   "eufy_front_door". Use for a camera that never produces video: otherwise every
+  #   snapshot attempt holds the NVR's single live session and blocks the others.
+  exclude_streams: str?
   captcha_id: str?
   captcha_answer: str?
   verification_code: password?

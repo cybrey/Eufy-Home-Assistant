@@ -46,6 +46,7 @@ if bashio::config.has_value 'station_sn'; then export EUFY_STATION_SN="$(bashio:
 if bashio::config.has_value 'captcha_id'; then export EUFY_CAPTCHA_ID="$(bashio::config 'captcha_id')"; fi
 if bashio::config.has_value 'captcha_answer'; then export EUFY_CAPTCHA_ANSWER="$(bashio::config 'captcha_answer')"; fi
 if bashio::config.has_value 'verification_code'; then export EUFY_VERIFICATION_CODE="$(bashio::config 'verification_code')"; fi
+if bashio::config.has_value 'exclude_streams'; then export EUFY_EXCLUDE_STREAMS="$(bashio::config 'exclude_streams')"; fi
 
 umask 077
 if python3 auth_login.py --check-cache-live "${EUFY_AUTH}"; then

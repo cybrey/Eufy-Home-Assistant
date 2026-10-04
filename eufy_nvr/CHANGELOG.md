@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.19
+
+- New `exclude_streams` option: comma-separated stream names (e.g. `eufy_front_door`) left out of go2rtc, so a
+  camera that never yields video stops holding the NVR's single live session on every snapshot attempt.
+- Integration: reloading no longer fails with `failed_unload` (upstream #14).
+
 ## 0.7.18
 
 - Anchor action3 signaling to channel 0 (upstream PR #18, fixes #17). On newer T8N00 firmware, cameras on
