@@ -53,7 +53,7 @@ RUN if [ ! -e /usr/bin/python ]; then ln -s /usr/bin/python3 /usr/bin/python; fi
 # Pin the runtime bridge to the reviewed implementation commit. The add-on folder is
 # Docker's build context, so the repository root cannot be copied directly.
 ARG REPO_URL="https://github.com/cybrey/Eufy-Home-Assistant"
-ARG REPO_COMMIT="254a1ede53b898f22089e8e0d4b3f1fb41aea2af"
+ARG REPO_COMMIT="8859eadcf33d5a64c29fb12d14472b4048e45f80"
 RUN [[ "${REPO_COMMIT}" =~ ^[0-9a-f]{40}$ ]] \
     && git init --quiet /tmp/repo \
     && git -C /tmp/repo remote add origin "${REPO_URL}" \

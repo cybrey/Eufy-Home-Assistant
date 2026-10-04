@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.18
+
+- Anchor action3 signaling to channel 0 (upstream PR #18, fixes #17). On newer T8N00 firmware, cameras on
+  channels 1+ connected but the NVR ignored their commands (`ptcs_in=0`) and no video arrived.
+
 ## 0.7.17
 
 - Verify the NVR's DTLS certificate fingerprint over its raw DER bytes instead of parsing it with `cryptography`.
