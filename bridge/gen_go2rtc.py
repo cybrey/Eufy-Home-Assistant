@@ -19,6 +19,16 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 STREAM_NAME = re.compile(r"eufy_[a-z0-9_]+\Z")
 STREAM_START_TIMEOUT = int(os.environ.get("EUFY_STREAM_START_TIMEOUT", "90"))
+# Comma-separated stream names (e.g. "eufy_front_door") left out of go2rtc. A camera
+# that never yields video otherwise holds the NVR's single live session on every
+# snapshot/primer attempt and starves the working cameras.
+EXCLUDED_STREAMS = frozenset(
+    name.strip() for name in os.environ.get("EUFY_EXCLUDE_STREAMS", "").split(",") if name.strip()
+)
+
+
+def is_published(name: str, camera: dict[str, Any]) -> bool:
+    return camera.get("status") != 0 and name not in EXCLUDED_STREAMS
 
 
 def slug(name: str | None, channel: int) -> str:
@@ -143,7 +153,7 @@ def render_config(
         raise ValueError("EUFY_STREAM_START_TIMEOUT must be between 1 and 300 seconds")
     username, password = validate_credentials(username, password)
 
-    online = [(name, camera) for name, camera in named if camera.get("status") != 0]
+    online = [(name, camera) for name, camera in named if is_published(name, camera)]
     lines = [
         "# Generated from validated discovery state. Online, on-demand streams.",
         "app:",
@@ -246,8 +256,11 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as error:
         print(f"gen_go2rtc: generation failed: {error}", file=sys.stderr)
         return 1
-    online = [(name, camera) for name, camera in named if camera.get("status") != 0]
+    online = [(name, camera) for name, camera in named if is_published(name, camera)]
     print(f"wrote {output_path} ({len(online)} online cameras)")
+    skipped = sorted(EXCLUDED_STREAMS & {name for name, _ in named})
+    if skipped:
+        print(f"excluded by configuration: {', '.join(skipped)}")
     print("\n# --- Home Assistant upstream streams ---")
     print("# Credentials are intentionally omitted; URL-encode them before replacing the placeholders.")
     print("streams:" if online else "streams: {}")
