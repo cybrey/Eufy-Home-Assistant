@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.30
+## 0.8.0
 
 - Add-on: single-lens cameras (e.g. the E41 turret) now request their only lens (sensor 0). They previously
   asked for sensor 1, which only dual-lens cameras have, and never produced video. Dual-lens cameras are
