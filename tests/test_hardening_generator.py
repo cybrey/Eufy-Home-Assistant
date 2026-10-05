@@ -56,7 +56,8 @@ def test_rename_and_channel_move_preserve_identity(tmp_path):
     second = gen.generate(*paths, **AUTH)
     assert first[0][0] == second[0][0] == "eufy_garage"
     config = paths[1].read_text()
-    assert "eufy_run.py 4 --rtsp" in config
+    # The moved camera is single-lens, so it also asks for its only lens.
+    assert "eufy_run.py 4 --sensor 0 --rtsp" in config
     assert "#starttimeout=90#killsignal=2#killtimeout=5" in config
 
 
