@@ -379,7 +379,11 @@ async def main():
                       "-pix_fmt", "yuv420p", "-g", "12", "-keyint_min", "12", "-sc_threshold", "0"]
             _codec_label = "H.264 (transcoded)"
         ffmpeg_proc = await asyncio.create_subprocess_exec(
-            FFMPEG, "-hide_banner", "-loglevel", "warning", "-fflags", "nobuffer",
+            # No "-fflags nobuffer": with it FFmpeg discards the packets read while
+            # probing, which is the opening keyframe. Every frame after it then
+            # decodes against a grey missing reference, so snapshots and the start
+            # of live view were grey with speckles until the next NVR keyframe.
+            FFMPEG, "-hide_banner", "-loglevel", "warning",
             # The input format is known, so probing only delays go2rtc publication.
             # HA's camera proxy has a hard 10-second image timeout and the NVR's
             # WebRTC handshake already consumes most of it on a cold start.

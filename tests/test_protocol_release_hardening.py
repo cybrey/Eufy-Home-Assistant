@@ -37,6 +37,13 @@ def test_go2rtc_generation_is_restricted_and_tolerates_cold_start():
     assert "eufy_run.py" in source
 
 
+def test_publisher_keeps_the_opening_keyframe():
+    stream = (ROOT / "bridge/eufy_stream.py").read_text()
+    # nobuffer makes FFmpeg drop the probed packets, i.e. the first keyframe.
+    assert '"-fflags", "nobuffer"' not in stream
+    assert '"-probesize", "32", "-analyzeduration", "0"' in stream
+
+
 def test_live_sessions_are_closed_before_process_teardown():
     stream = (ROOT / "bridge/eufy_stream.py").read_text()
     supervisor = (ROOT / "bridge/eufy_run.py").read_text()
