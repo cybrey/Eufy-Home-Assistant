@@ -120,7 +120,7 @@ Runs everything on your HA host; no always-on PC and no token paste.
 
 1. **Settings → Add-ons → Add-on Store → ⋮ (top-right) → Repositories** → add
    `https://github.com/HallyAus/Eufy-Home-Assistant` → **Add**, then close.
-2. Find and install **Eufy NVR Local (experimental)**. (First build is slow — it compiles/links the WebRTC stack
+2. Find and install **Eufy NVR Local Server**. (First build is slow — it compiles/links the WebRTC stack
    and downloads go2rtc.)
 3. **Configuration** tab → enter your eufy account:
    - `email` / `password` — your eufy login
@@ -203,8 +203,8 @@ The integration polls the engine's go2rtc and creates a camera entity for every 
 
    [![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=HallyAus&repository=Eufy-Home-Assistant&category=integration)
 
-2. In HACS search **"Eufy NVR (local)"** → **Download** → **Restart Home Assistant**.
-3. **Settings → Devices & Services → + Add Integration →** search **"Eufy NVR (local)"**, then enter:
+2. In HACS search **"Eufy NVR Local Companion"** → **Download** → **Restart Home Assistant**.
+3. **Settings → Devices & Services → + Add Integration →** search **"Eufy NVR Local Companion"**, then enter:
    - **Host** — where go2rtc runs. For the **add-on** (Option A) use your **HA host's LAN IP**
      (e.g. `192.168.1.177`) — **not** `127.0.0.1`: the integration runs inside HA Core and can't reach a
      `host_network` add-on over localhost, and HA's own built-in go2rtc already occupies `127.0.0.1:1984`.

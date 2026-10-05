@@ -9,7 +9,7 @@ cloud; the video itself is pulled LAN-direct from the NVR.
 > last-viewed live camera with an adaptive lease, and serves pre-seeded Home Assistant thumbnails stale-while-revalidate.
 > It also includes Eufy mailbox/device verification, account-bound auth caches, authenticated LAN access,
 > strict process supervision, and verified immutable build inputs. The
-> HACS integration, **"Eufy NVR (local)"**, auto-creates the camera
+> HACS integration, **"Eufy NVR Local Companion"**, auto-creates the camera
 > entities from the bridge's go2rtc; install it separately from this repo.
 
 ## What it runs
@@ -24,7 +24,7 @@ cloud; the video itself is pulled LAN-direct from the NVR.
 
 1. Home Assistant -> **Settings -> Add-ons -> Add-on Store -> ⋮ -> Repositories** -> add
    `https://github.com/HallyAus/Eufy-Home-Assistant` -> **Add**.
-2. Find and install **Eufy NVR Local (experimental)**. (First build is slow: it compiles/links the
+2. Find and install **Eufy NVR Local Server**. (First build is slow: it compiles/links the
    WebRTC stack and downloads go2rtc.)
 3. **Configuration tab** of the add-on — enter your eufy account and region:
    - `email`     -> the **owner/admin eufy account for the NVR**. Shared/member accounts can login and
@@ -66,7 +66,7 @@ camera rename does not unnecessarily create a new Home Assistant entity, and col
 resolved without silently replacing another camera. The exact stream list is printed in the add-on
 log and shown in the go2rtc UI. To surface them as camera entities, either:
 
-- install the companion **"Eufy NVR (local)"** HACS integration (auto-creates one camera per stream), or
+- install the companion **"Eufy NVR Local Companion"** HACS integration (auto-creates one camera per stream), or
 - use the **Generic Camera** integration -> *Stream Source* `rtsp://<HA-LAN-IP>:8556/eufy_garage`, or
 - add them to HA's own `/config/go2rtc.yaml` and reference from a `camera:` / WebRTC card.
 
