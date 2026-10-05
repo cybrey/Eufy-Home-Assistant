@@ -175,6 +175,18 @@ class SessionTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(session.closed)
         self.assertEqual(self.closed_calls, 1)
 
+    async def test_missing_ws_path_asks_for_addon_update(self):
+        class HandshakeError(Exception):
+            status = 404
+
+        async def connect():
+            raise HandshakeError
+
+        session = self.make_session(connect)
+        await session.async_start("v=0", [])
+        self.assertEqual(len(self.events), 1)
+        self.assertIn("update it to 0.7.23", self.events[0][1])
+
     async def test_go2rtc_error_or_early_hangup_is_reported_and_cleaned_up(self):
         ws = FakeWebSocket()
 

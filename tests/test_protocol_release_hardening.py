@@ -33,6 +33,7 @@ def test_go2rtc_generation_is_restricted_and_tolerates_cold_start():
     assert "/api/streams" in source
     assert "/api/frame.jpeg" in source
     assert "/api/stream.ts" in source
+    assert "/api/ws," in source
     assert "eufy_run.py" in source
 
 

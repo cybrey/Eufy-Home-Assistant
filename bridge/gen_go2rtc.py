@@ -182,7 +182,8 @@ def render_config(
         f"  username: {json.dumps(username)}",
         f"  password: {json.dumps(password)}",
         "  local_auth: false",
-        "  allow_paths: [/api, /api/streams, /api/webrtc, /api/frame.jpeg, /api/stream.ts]",
+        # /api/ws carries the companion integration's WebRTC signaling.
+        "  allow_paths: [/api, /api/streams, /api/webrtc, /api/ws, /api/frame.jpeg, /api/stream.ts]",
         "",
         "webrtc:",
         f'  listen: ":{webrtc_port}"',
