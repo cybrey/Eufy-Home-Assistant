@@ -127,10 +127,10 @@ class WebRtcSession:
         except Exception as error:  # noqa: BLE001 - reported to the viewer
             # Never include the exception text: aiohttp may echo the URL.
             if getattr(error, "status", None) == 404:
-                # Add-on builds before 0.7.23 did not allow /api/ws.
+                # Add-on builds before 0.7.24 did not allow /api/ws.
                 self._on_error(
                     "the Eufy NVR Local Server add-on does not allow WebRTC "
-                    "signaling; update it to 0.7.23 or later"
+                    "signaling; update it to 0.7.24 or later"
                 )
             else:
                 self._on_error(

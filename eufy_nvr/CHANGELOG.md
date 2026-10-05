@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.24
+
+- Add-on: load go2rtc's `ws` module. 0.7.23 allowed /api/ws but the module that serves it was not loaded, so
+  live view still failed with "does not allow WebRTC signaling". Update the add-on; the companion only changes
+  its error text.
+
 ## 0.7.23
 
 - Add-on: go2rtc now allows /api/ws, which the companion uses for WebRTC signaling. Without it 0.7.22 live view
