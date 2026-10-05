@@ -154,6 +154,7 @@ fi
 
 RELOGIN_PID=""
 ADAPTIVE_WARM_PID=""
+PTZ_PID=""
 
 start_adaptive_warmer() {
     local seconds
@@ -170,6 +171,17 @@ start_adaptive_warmer() {
     python3 eufy_warm.py --seconds "${seconds}" &
     ADAPTIVE_WARM_PID=$!
     bashio::log.info "adaptive warm lease enabled (${seconds}s, one camera maximum)."
+}
+
+start_ptz_server() {
+    # PTZ commands ride the live camera session; this endpoint forwards them to it.
+    ( while true; do
+        python3 eufy_ptz.py --port 1986 || true   # errexit would otherwise end the restart loop
+        bashio::log.warning "PTZ endpoint exited; restarting in 5s."
+        sleep 5
+      done ) &
+    PTZ_PID=$!
+    bashio::log.info "PTZ endpoint on :1986."
 }
 
 start_relogin_timer() {
@@ -196,6 +208,7 @@ term() {
     bashio::log.info "Received stop signal; shutting down go2rtc (pid ${GO2RTC_PID:-?}) + warmers."
     [ -n "${RELOGIN_PID:-}" ] && kill "${RELOGIN_PID}" 2>/dev/null || true
     [ -n "${ADAPTIVE_WARM_PID:-}" ] && kill "${ADAPTIVE_WARM_PID}" 2>/dev/null || true
+    [ -n "${PTZ_PID:-}" ] && kill "${PTZ_PID}" 2>/dev/null || true
     [ -n "${GO2RTC_PID:-}" ] && kill -TERM "${GO2RTC_PID}" 2>/dev/null || true
     exit 0
 }
@@ -212,6 +225,7 @@ while true; do
     if [ "${BACKGROUND_TASKS_STARTED}" -eq 0 ]; then
         start_relogin_timer
         start_adaptive_warmer
+        start_ptz_server
         BACKGROUND_TASKS_STARTED=1
     fi
 

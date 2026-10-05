@@ -264,7 +264,30 @@ def generate(
     registry = json.dumps({"version": 1, "names": names}, indent=2, sort_keys=True) + "\n"
     atomic_write(registry_path, registry)
     atomic_write(output_path, config)
+    atomic_write(stream_map_path(manifest_path), json.dumps(stream_map(named), indent=2) + "\n")
     return named
+
+
+def stream_map_path(manifest_path: Path) -> Path:
+    """Where eufy_ptz.py reads stream -> channel; beside the discovery manifest."""
+    return manifest_path.with_name("eufy-streams.json")
+
+
+def stream_map(named: list[tuple[str, dict[str, Any]]]) -> dict[str, dict[str, Any]]:
+    """Map each published stream to its channel, lens and PTZ capability.
+
+    PTZ is the default (sensor 1) lens of a dual-lens camera; its wide sibling and
+    single-lens cameras cannot be steered.
+    """
+    cameras = dict(named)
+    return {
+        name: {
+            "channel": channel,
+            "sensor": 1 if sensor is None else sensor,
+            "ptz": sensor is None and is_dual_lens(cameras[name]),
+        }
+        for name, channel, sensor in published_streams(named)
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

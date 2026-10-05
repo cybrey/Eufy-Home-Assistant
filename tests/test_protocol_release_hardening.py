@@ -119,3 +119,13 @@ def test_engine_selects_lens_with_sensor_argument():
     assert '"sensor": sensor' in stream
     assert "build_startstream(USER_ID, CHANNELS, stream_id=1, sensor=SENSOR)" in stream
     assert "del sys.argv[_sensor_at:_sensor_at + 2]" in stream
+
+
+def test_engine_exposes_ptz_control_only_while_live():
+    stream = (ROOT / "bridge/eufy_stream.py").read_text()
+    # Opened after the first video frame, closed before closeLive, and never
+    # removes a successor's socket.
+    assert "asyncio.ensure_future(start_control_server())" in stream
+    assert "await stop_control_server()\n            await close_live()" in stream
+    assert 'path.stat().st_ino == inode' in stream
+    assert "oracle.push_send(1, cmd_frame)" in stream

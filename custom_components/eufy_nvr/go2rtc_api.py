@@ -10,7 +10,11 @@ from urllib.parse import quote, urlsplit
 API_STREAMS_PATH = "/api/streams"
 API_FRAME_PATH = "/api/frame.jpeg"
 API_WS_PATH = "/api/ws"
+API_PTZ_PATH = "/api/ptz"
 STREAM_PREFIX = "eufy_"
+# The add-on publishes "<stream>_wide" only for dual-lens cameras, whose default
+# stream is the PTZ lens. Its PTZ endpoint listens on the go2rtc API port + 1.
+WIDE_SUFFIX = "_wide"
 MAX_FRAME_BYTES = 20 * 1024 * 1024
 
 
@@ -24,6 +28,10 @@ class Go2RtcConnectionError(Go2RtcError):
 
 class Go2RtcPayloadError(Go2RtcError):
     """Raised when go2rtc returns an unexpected response."""
+
+
+class PtzNotLiveError(Go2RtcError):
+    """Raised when a PTZ command targets a camera that is not being viewed live."""
 
 
 def validate_port(port: int) -> int:
@@ -149,6 +157,22 @@ def ws_url(host: str, port: int) -> str:
     return f"{api_base_url(host, port)}{API_WS_PATH}"
 
 
+def ptz_url(host: str, api_port: int) -> str:
+    """Build the add-on's PTZ endpoint URL (go2rtc API port + 1)."""
+    return f"{api_base_url(host, validate_port(api_port + 1))}{API_PTZ_PATH}"
+
+
+def ptz_streams(streams: Any) -> list[str]:
+    """Return the steerable streams: those with a "<stream>_wide" sibling."""
+    names = set(streams)
+    return sorted(
+        name for name in names
+        if name.startswith(STREAM_PREFIX)
+        and not name.endswith(WIDE_SUFFIX)
+        and name + WIDE_SUFFIX in names
+    )
+
+
 def rtsp_url(
     host: str, port: int, stream: str, username: str, password: str
 ) -> str:
@@ -258,6 +282,35 @@ class Go2RtcClient:
             raise Go2RtcPayloadError(
                 f"unexpected go2rtc response from {self.url}"
             ) from err
+
+    async def async_ptz(self, stream: str, command: dict[str, Any]) -> dict[str, Any]:
+        """Send one PTZ command for a live camera through the add-on."""
+        from aiohttp import ClientError
+
+        if not isinstance(stream, str) or not stream.startswith(STREAM_PREFIX):
+            raise Go2RtcPayloadError("invalid Eufy stream name")
+        try:
+            async with self._session.post(
+                ptz_url(self.host, self.api_port),
+                json={**command, "stream": stream},
+                headers=self._headers,
+                timeout=self._timeout,
+            ) as response:
+                status = response.status
+                payload = await response.json(content_type=None)
+        except (ClientError, TimeoutError) as err:
+            raise Go2RtcConnectionError(
+                "cannot reach the Eufy PTZ endpoint; update the add-on to 0.7.29 or later"
+            ) from err
+        except ValueError as err:
+            raise Go2RtcPayloadError("the PTZ endpoint returned invalid JSON") from err
+        if not isinstance(payload, dict):
+            raise Go2RtcPayloadError("the PTZ endpoint returned an unexpected reply")
+        if status == 409:
+            raise PtzNotLiveError(str(payload.get("error") or "camera is not live"))
+        if status != 200 or not payload.get("ok"):
+            raise Go2RtcError(str(payload.get("error") or f"PTZ endpoint returned HTTP {status}"))
+        return payload
 
     async def async_open_webrtc(self, stream: str) -> Any:
         """Open a go2rtc WebSocket that will consume ``stream`` over WebRTC."""

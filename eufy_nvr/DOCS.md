@@ -76,12 +76,44 @@ a 90-second exec `starttimeout` so queued or retrying Eufy WebRTC cold starts ar
 Eufy-specific controller holds only the most recently viewed producer for a short adaptive lease and
 hands the single NVR session to a newly requested camera.
 
+### Dual-lens cameras and PTZ
+
+Dual-lens S4 PoE cameras publish two streams: `eufy_<camera>` (the PTZ lens) and `eufy_<camera>_wide`
+(the fixed wide lens). With the companion integration, each PTZ lens also gets buttons: pan left/right,
+tilt up/down, zoom in/out, and Preset 1–8 (disabled by default; enable the slots saved in the Eufy app).
+
+PTZ commands travel inside the NVR's single live session, so they only work **while that camera is
+being viewed live**; otherwise the button reports that the camera is not live. A live picture card with
+the buttons overlaid does both:
+
+```yaml
+type: picture-elements
+camera_image: camera.eufy_nvr_garage
+camera_view: live
+elements:
+  - { type: icon, icon: mdi:chevron-left, style: { left: 6%, top: 50%, color: white },
+      tap_action: { action: perform-action, perform_action: button.press,
+                    target: { entity_id: button.eufy_nvr_garage_pan_left } } }
+  - { type: icon, icon: mdi:chevron-right, style: { left: 94%, top: 50%, color: white },
+      tap_action: { action: perform-action, perform_action: button.press,
+                    target: { entity_id: button.eufy_nvr_garage_pan_right } } }
+  - { type: icon, icon: mdi:chevron-up, style: { left: 50%, top: 8%, color: white },
+      tap_action: { action: perform-action, perform_action: button.press,
+                    target: { entity_id: button.eufy_nvr_garage_tilt_up } } }
+  - { type: icon, icon: mdi:chevron-down, style: { left: 50%, top: 92%, color: white },
+      tap_action: { action: perform-action, perform_action: button.press,
+                    target: { entity_id: button.eufy_nvr_garage_tilt_down } } }
+```
+
+Check the real entity IDs under Settings → Entities (they can include the device's area).
+
 ## Ports
 
 | Port      | Purpose                                                        |
 |-----------|---------------------------------------------------------------|
 | 8556/tcp  | RTSP — HA pulls cameras from here                             |
 | 1985/tcp  | Eufy go2rtc API + UI (also the Supervisor watchdog endpoint)  |
+| 1986/tcp  | PTZ control (pan/tilt/zoom/presets) for a camera that is live   |
 | 8557/tcp+udp | WebRTC candidates                                          |
 
 The add-on runs with `host_network: true` (required: LAN-direct media to the NVR + same-host RTSP to

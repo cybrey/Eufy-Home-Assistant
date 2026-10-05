@@ -21,7 +21,7 @@ from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN, FRAME_SETUP_PRIME_TIMEO
 from .coordinator import EufyNvrCoordinator
 from .go2rtc_api import validate_credentials
 
-PLATFORMS: list[Platform] = [Platform.CAMERA]
+PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.CAMERA]
 _LOGGER = logging.getLogger(__name__)
 
 # Typed config entry so ``entry.runtime_data`` carries the coordinator (HA 2024.11+).
