@@ -194,6 +194,8 @@ def test_dual_lens_camera_adds_wide_lens_stream():
     # The original stream stays on the default (PTZ) lens; the wide one asks for sensor 0.
     assert "--sensor" not in streams["eufy_garage"]
     assert streams["eufy_garage_wide"].startswith("exec:python eufy_run.py 0 --sensor 0 --rtsp {output}")
+    # A single-lens camera's only lens is sensor 0.
+    assert streams["eufy_doorbell"].startswith("exec:python eufy_run.py 3 --sensor 0 --rtsp {output}")
 
 
 def test_excluding_a_camera_excludes_both_lenses_and_wide_can_be_excluded_alone():
@@ -209,4 +211,4 @@ def test_wide_stream_never_shadows_a_real_camera_name():
     named, _ = gen.assign_names(gen.validate_manifest(manifest(*cams)), {})
     streams = yaml.safe_load(gen.render_config(named, **AUTH))["streams"]
     assert set(streams) == {"eufy_garage", "eufy_garage_wide"}
-    assert streams["eufy_garage_wide"].startswith("exec:python eufy_run.py 1 --rtsp")
+    assert streams["eufy_garage_wide"].startswith("exec:python eufy_run.py 1 --sensor 0 --rtsp")

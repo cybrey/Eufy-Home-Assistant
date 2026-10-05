@@ -509,7 +509,8 @@ async def main():
         os.replace(tmp, out)
         log(f"DISCOVERED nvr_ip={state['nvr_ip']} sn={STATION_SN}: {len(cams)} camera(s)")
         for c in cams:
-            log(f"   ch {c['channel']}: {c['name']!r} (sn {c['sn']}, status {c['status']})")
+            log(f"   ch {c['channel']}: {c['name']!r} (sn {c['sn']}, status {c['status']}, "
+                f"dev_type {c['dev_type']}, sensor_num {c['sensor_num']})")
         log(f"wrote {out}")
         state["discovered"] = True
 

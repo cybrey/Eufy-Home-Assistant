@@ -37,6 +37,7 @@ def is_published(name: str, camera: dict[str, Any]) -> bool:
 DUAL_LENS_DEV_TYPES = frozenset({301, 311})
 WIDE_SUFFIX = "_wide"
 WIDE_SENSOR = 0
+SINGLE_LENS_SENSOR = 0
 
 
 def is_dual_lens(camera: dict[str, Any]) -> bool:
@@ -56,7 +57,10 @@ def published_streams(
     for name, camera in named:
         if not is_published(name, camera):
             continue
-        streams.append((name, camera["channel"], None))
+        # A single-lens camera's only lens is sensor 0 (eufy's web client asks
+        # for exactly that); the engine's default sensor 1 yields no video there.
+        default_lens = None if is_dual_lens(camera) else SINGLE_LENS_SENSOR
+        streams.append((name, camera["channel"], default_lens))
         wide = name + WIDE_SUFFIX
         if is_dual_lens(camera) and wide not in taken and wide not in EXCLUDED_STREAMS:
             streams.append((wide, camera["channel"], WIDE_SENSOR))
