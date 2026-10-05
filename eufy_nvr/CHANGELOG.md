@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- Add-on: single-lens cameras (e.g. the E41 turret) now request their only lens (sensor 0). They previously
+  asked for sensor 1, which only dual-lens cameras have, and never produced video. Dual-lens cameras are
+  unchanged. Discovery logs each camera's dev_type.
+
 ## 0.7.29
 
 - PTZ control for dual-lens cameras. The companion adds buttons per PTZ lens: pan left/right, tilt up/down,

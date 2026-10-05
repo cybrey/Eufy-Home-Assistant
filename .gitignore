@@ -27,3 +27,6 @@ node_modules/
 .DS_Store
 .idea/
 .vscode/
+
+# Local go2rtc credentials for LAN testing (never commit)
+.go2rtc-creds

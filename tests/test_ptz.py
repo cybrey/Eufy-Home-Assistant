@@ -114,7 +114,7 @@ def test_generator_writes_the_stream_map(tmp_path):
     assert json.loads((tmp_path / "eufy-streams.json").read_text()) == {
         "eufy_garage": {"channel": 0, "sensor": 1, "ptz": True},
         "eufy_garage_wide": {"channel": 0, "sensor": 0, "ptz": False},
-        "eufy_doorbell": {"channel": 1, "sensor": 1, "ptz": False},
+        "eufy_doorbell": {"channel": 1, "sensor": 0, "ptz": False},
     }
 
 
