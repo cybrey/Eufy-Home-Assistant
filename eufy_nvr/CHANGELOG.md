@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.21
+
+- Timestamp video on arrival instead of assuming 25 fps. The NVR sends ~10 fps, so stream time ran at 0.4x real
+  time and Home Assistant's live player stalled on a grey first frame.
+
 ## 0.7.20
 
 - Integration: dashboard thumbnails are cached for 15 minutes (was 30 seconds) and a failed capture waits 60 s
