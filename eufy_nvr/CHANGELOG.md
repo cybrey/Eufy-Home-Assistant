@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.23
+
+- Add-on: go2rtc now allows /api/ws, which the companion uses for WebRTC signaling. Without it 0.7.22 live view
+  failed with "cannot open the Eufy go2rtc WebSocket (WSServerHandshakeError)". Update both the add-on and the
+  companion.
+
 ## 0.7.22
 
 - Integration: camera live view now uses WebRTC straight from the add-on's go2rtc. Home Assistant no longer
