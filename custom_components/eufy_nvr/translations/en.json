@@ -55,6 +55,19 @@
       "reauth_successful": "Eufy NVR credentials were updated successfully."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Eufy NVR Local Companion",
+        "data": {
+          "snapshot_refresh_seconds": "Preview refresh interval (seconds)"
+        },
+        "data_description": {
+          "snapshot_refresh_seconds": "How old a dashboard preview may get before it is refreshed (30–900). Each refresh uses the NVR's single live session for about 3 seconds per camera, so shorter intervals can delay opening a live view slightly."
+        }
+      }
+    }
+  },
   "entity": {
     "camera": {
       "eufy_nvr": {

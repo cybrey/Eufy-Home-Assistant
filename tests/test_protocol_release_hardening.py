@@ -97,3 +97,17 @@ def test_release_versions_and_go2rtc_are_aligned():
     assert manifest["version"] == addon_version
     assert tuple(map(int, addon_version.split("."))) >= (0, 7, 0)
     assert 'ARG GO2RTC_VERSION="v1.9.14"' in dockerfile
+
+
+def test_preview_refresh_is_an_option_with_safe_bounds():
+    const = (ROOT / "custom_components/eufy_nvr/const.py").read_text()
+    flow = (ROOT / "custom_components/eufy_nvr/config_flow.py").read_text()
+    setup = (ROOT / "custom_components/eufy_nvr/__init__.py").read_text()
+    assert "DEFAULT_SNAPSHOT_REFRESH = 120" in const
+    assert "MIN_SNAPSHOT_REFRESH = 30" in const
+    assert "MAX_SNAPSHOT_REFRESH = 15 * 60" in const
+    assert "class EufyNvrOptionsFlow(OptionsFlow)" in flow
+    assert "add_update_listener" in setup
+    for path in ("strings.json", "translations/en.json"):
+        strings = json.loads((ROOT / "custom_components/eufy_nvr" / path).read_text())
+        assert "snapshot_refresh_seconds" in strings["options"]["step"]["init"]["data"]
