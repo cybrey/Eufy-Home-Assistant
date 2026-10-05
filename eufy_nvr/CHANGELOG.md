@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.29
+
+- PTZ control for dual-lens cameras. The companion adds buttons per PTZ lens: pan left/right, tilt up/down,
+  zoom in/out, and Preset 1-8 (disabled by default). They work while that camera is being viewed live;
+  otherwise they report that the camera is not live. The add-on serves them on a new port, 1986.
+- Update both the add-on and the companion.
+
 ## 0.7.28
 
 - Add-on: dual-lens cameras (S4 PoE) now also publish their fixed wide lens as `<camera>_wide`, which the

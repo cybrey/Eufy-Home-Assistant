@@ -1,5 +1,5 @@
 name: Eufy NVR Local Server
-version: "0.7.28"
+version: "0.7.29"
 slug: eufy_nvr
 description: Local live video from a eufy PoE NVR (S4 / T8N00) over reversed WebRTC, served as RTSP/WebRTC for Home Assistant. No cloud media, no Frigate.
 url: https://github.com/HallyAus/Eufy-Home-Assistant
@@ -30,11 +30,13 @@ webui: "http://[HOST]:[PORT:1985]/"
 ports:
   8556/tcp: 8556
   1985/tcp: 1985
+  1986/tcp: 1986
   8557/tcp: 8557
   8557/udp: 8557
 ports_description:
   8556/tcp: RTSP (HA pulls cameras from rtsp://<HA-LAN-IP>:8556/eufy_<name>)
   1985/tcp: go2rtc API / web UI (also the watchdog endpoint)
+  1986/tcp: PTZ control for live dual-lens cameras (companion integration)
   8557/tcp: WebRTC (TCP candidate)
   8557/udp: WebRTC (UDP candidate)
 

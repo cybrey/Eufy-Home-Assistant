@@ -118,6 +118,10 @@ class EufyNvrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             raise Go2RtcError("snapshot endpoint returned no frame")
         return frame
 
+    async def async_ptz(self, stream: str, command: dict[str, Any]) -> dict[str, Any]:
+        """Send one PTZ command for a camera that is currently live."""
+        return await self._client.async_ptz(stream, command)
+
     async def async_open_webrtc(self, stream: str) -> Any:
         """Open a go2rtc WebSocket for one live WebRTC viewer of ``stream``."""
         return await self._client.async_open_webrtc(stream)

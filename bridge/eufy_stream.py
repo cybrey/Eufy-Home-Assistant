@@ -15,6 +15,7 @@ import asyncio, json, time, uuid, os, sys, hashlib, re, base64, struct
 import aiohttp
 import websockets
 import eufy_cloud as ec
+import ptz_protocol as ptz
 from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration
 from aiortc.sdp import candidate_from_sdp
 import logging
@@ -355,8 +356,13 @@ async def main():
     chans = {}
     state = {"connected": False, "started": False, "vbytes": 0, "vframes": 0, "ptcs_in": 0,
              "cmd_dc_open": False, "frames_seen": 0, "nvr_ip": None, "discovered": False,
-             "fatal_reason": None, "shutting_down": False, "close_sent": False}
+             "fatal_reason": None, "shutting_down": False, "close_sent": False,
+             "zoom": ptz.ZOOM_MIN}
     close_ack = asyncio.Event()
+    # PTZ control socket: present only while this camera is live (eufy_ptz.py returns
+    # 409 otherwise). Replies are matched to requests by the NVR's "cmd" field.
+    ptz_pending = {}
+    control = {"server": None, "path": None, "inode": None}
 
     def on_control_status(status):
         if state["close_sent"] and status == 0:
@@ -451,6 +457,8 @@ async def main():
                 log(f"VIDEO #{state['vframes']} cmd={cmdid} link={link} payload={len(payload)} "
                     f"nal={payload[:8].hex()} total={state['vbytes']}")
                 log(f"PERF first_video_ms={int((progress_now - perf_started) * 1000)}")
+                if STREAM_MODE and not DISCOVER:
+                    asyncio.ensure_future(start_control_server())
             elif progress_now - state.get("last_video_log", 0.0) >= 5.0:
                 state["last_video_log"] = progress_now
                 log(f"VIDEO_PROGRESS frames={state['vframes']} bytes={state['vbytes']}")
@@ -471,6 +479,14 @@ async def main():
                 handle_devlist(txt)
             else:
                 log(f"CTRL cmd={cmdid} link={link} len={len(buf)} {txt[:170]}")
+                reply, obj = ptz.reply_cmd(txt)
+                if reply == ptz.PTZ_ZOOM and isinstance(obj, dict):
+                    zoom = (obj.get("payload") or {}).get("dstZoom")
+                    if type(zoom) is int:
+                        state["zoom"] = zoom
+                waiter = ptz_pending.get(reply)
+                if waiter is not None and not waiter.done():
+                    waiter.set_result(obj)
             framelog.write(json.dumps({"ctrl": True, "cmd": cmdid, "link": link, "len": len(buf), "txt": txt[:600]}) + "\n"); framelog.flush()
     oracle.on_frame = on_frame
 
@@ -559,6 +575,73 @@ async def main():
                 log("closeLive acknowledgement timed out; closing transport")
         except Exception as error:
             log("closeLive send failed:", type(error).__name__)
+
+    async def handle_control(reader, writer):
+        """One JSON request line in, one JSON reply line out."""
+        try:
+            line = await asyncio.wait_for(reader.readline(), timeout=5)
+            try:
+                request = json.loads(line or b"null")
+                reply_to, cmd_frame, zoom = ptz.build_request(
+                    USER_ID, CHANNELS[0], request, state["zoom"])
+            except ValueError as error:
+                result = {"ok": False, "error": str(error)}
+            else:
+                channel = chans.get("WebrtcDataChannel")
+                if state["shutting_down"] or channel is None or channel.readyState != "open":
+                    result = {"ok": False, "error": "camera session is closing"}
+                else:
+                    waiter = asyncio.get_running_loop().create_future()
+                    ptz_pending[reply_to] = waiter
+                    log(f"-> ptz {request.get('action')} cmd={reply_to} ch={CHANNELS[0]}")
+                    oracle.push_send(1, cmd_frame)
+                    try:
+                        answer = await asyncio.wait_for(waiter, timeout=3.0)
+                        acked = True
+                    except asyncio.TimeoutError:
+                        answer, acked = None, False
+                    finally:
+                        if ptz_pending.get(reply_to) is waiter:
+                            del ptz_pending[reply_to]
+                    if zoom is not None:
+                        state["zoom"] = zoom
+                    result = {"ok": True, "acked": acked, "zoom": state["zoom"], "reply": answer}
+            writer.write((json.dumps(result) + "\n").encode())
+            await writer.drain()
+        except Exception as error:
+            log("ptz control err:", type(error).__name__)
+        finally:
+            writer.close()
+
+    async def start_control_server():
+        if os.name == "nt" or control["server"] is not None or state["shutting_down"]:
+            return
+        path = ptz.control_socket_path(CHANNELS[0])
+        try:
+            # A crashed predecessor can leave its socket behind; the session gate
+            # guarantees no other live engine owns this channel now.
+            path.unlink(missing_ok=True)
+            control["server"] = await asyncio.start_unix_server(handle_control, path=str(path))
+            os.chmod(path, 0o600)
+            control["path"], control["inode"] = path, path.stat().st_ino
+            log(f"ptz control ready for ch={CHANNELS[0]}")
+        except OSError as error:
+            log("ptz control unavailable:", type(error).__name__)
+
+    async def stop_control_server():
+        server, path, inode = control["server"], control["path"], control["inode"]
+        control["server"] = None
+        if server is not None:
+            server.close()
+        # Only remove our own socket, never a successor's that reused the path.
+        try:
+            if path is not None and path.stat().st_ino == inode:
+                path.unlink()
+        except OSError:
+            pass
+        for waiter in ptz_pending.values():
+            if not waiter.done():
+                waiter.set_result(None)
 
     def maybe_start():
         if state["connected"] and state["cmd_dc_open"] and not state["started"]:
@@ -705,6 +788,7 @@ async def main():
             log("ws loop err:", repr(e))
         finally:
             state["shutting_down"] = True
+            await stop_control_server()
             await close_live()
             if ffmpeg_watchdog_task is not None and not ffmpeg_watchdog_task.done():
                 ffmpeg_watchdog_task.cancel()
