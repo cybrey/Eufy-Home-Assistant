@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.28
+
+- Add-on: dual-lens cameras (S4 PoE) now also publish their fixed wide lens as `<camera>_wide`, which the
+  companion shows as a separate "... Wide" camera. The existing stream (the PTZ lens) is unchanged. Adding a
+  camera to exclude_streams hides both lenses; add `<camera>_wide` to hide only the wide lens.
+
 ## 0.7.27
 
 - Integration: new option "Preview refresh interval" (Settings > Devices & services > Eufy NVR > Configure).
