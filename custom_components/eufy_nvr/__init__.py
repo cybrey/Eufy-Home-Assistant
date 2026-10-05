@@ -14,7 +14,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN, FRAME_SETUP_PRIME_TIMEOUT
@@ -68,17 +68,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: EufyNvrConfigEntry) -> b
         )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    primer = hass.async_create_task(
+    # The primer never returns. A background task keeps HA from waiting on it
+    # during startup (it held bootstrap until its ~6-minute timeout) and is
+    # cancelled automatically when the entry unloads.
+    entry.async_create_background_task(
+        hass,
         coordinator.async_prime_frames_forever(),
         f"{DOMAIN} snapshot primer",
     )
-
-    @callback
-    def _cancel_primer() -> None:
-        # Task.cancel() returns True; HA requires unload callbacks to return None.
-        primer.cancel()
-
-    entry.async_on_unload(_cancel_primer)
     return True
 
 

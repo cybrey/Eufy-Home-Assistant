@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.25
+
+- Integration: the snapshot primer runs as a background task. It loops forever, and as a normal task it held
+  Home Assistant's startup until the ~6-minute bootstrap timeout (and blocked add-on updates meanwhile).
+  No add-on code changes.
+
 ## 0.7.24
 
 - Add-on: load go2rtc's `ws` module. 0.7.23 allowed /api/ws but the module that serves it was not loaded, so
