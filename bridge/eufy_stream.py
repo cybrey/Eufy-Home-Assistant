@@ -101,6 +101,14 @@ RTSP_URL = None
 if "--rtsp" in sys.argv:
     RTSP_URL = sys.argv[sys.argv.index("--rtsp") + 1]
 STREAM_MODE = bool(RTSP_URL) or os.environ.get("EUFY_STDOUT") == "1"   # run indefinitely, no frame-count stop
+# --sensor <0|1>: lens on dual-lens cameras (1 = PTZ, the default; 0 = fixed wide).
+SENSOR = 1
+if "--sensor" in sys.argv:
+    _sensor_at = sys.argv.index("--sensor")
+    SENSOR = int(sys.argv[_sensor_at + 1]) if _sensor_at + 1 < len(sys.argv) else -1
+    if SENSOR not in (0, 1):
+        raise SystemExit("--sensor must be 0 (wide lens) or 1 (PTZ lens)")
+    del sys.argv[_sensor_at:_sensor_at + 2]
 _rest = [a for a in sys.argv[2:] if a not in ("--rtsp", RTSP_URL)]
 RUN_SECS = int(_rest[0]) if _rest and _rest[0].isdigit() else (10**9 if STREAM_MODE else 70)
 NODE = _bin("node")
@@ -145,9 +153,10 @@ def build_openlive(user_id, channels):
     h[14] = 0; h[15] = 2                          # is_response, dev_type (cloud=2)
     return bytes(h) + payload
 
-def build_startstream(user_id, channels, stream_id=1):
+def build_startstream(user_id, channels, stream_id=1, sensor=1):
     # cmd 1003 (ic / startStream) — the ACTUAL live-video trigger (cmd 1103 is only a param query).
-    chn_list = [{"index": i, "chn": c, "sensor": 1} for i, c in enumerate(channels)]
+    # sensor selects the lens on dual-lens cameras: 1 = PTZ (default), 0 = fixed wide.
+    chn_list = [{"index": i, "chn": c, "sensor": sensor} for i, c in enumerate(channels)]
     payload = json.dumps({
         "account_id": user_id, "cmd": 1003,
         "payload": {"ClientOS": "WEB", "entrytype": 1, "camera_type": 0, "streamtype": 2,
@@ -472,7 +481,8 @@ async def main():
             log("devlist parse err:", e); return
         dl = obj.get("payload", {}).get("dev_list") or obj.get("dev_list") or []
         cams = [{"channel": d.get("ch"), "name": d.get("name"), "sn": d.get("sn"),
-                 "status": d.get("status"), "dev_type": d.get("dev_type")} for d in dl]
+                 "status": d.get("status"), "dev_type": d.get("dev_type"),
+                 "sensor_num": d.get("sensor_num")} for d in dl]
         manifest = {"nvr_sn": STATION_SN, "nvr_ip": state["nvr_ip"], "cameras": cams}
         out = CAMERAS_JSON
         # Write-then-rename (like auth_login.py) so gen_go2rtc.py, or a fallback that
@@ -512,8 +522,8 @@ async def main():
         # The NVR acknowledges openLive in tens of milliseconds. A short guard
         # is sufficient and keeps cold starts inside HA's image timeout.
         await asyncio.sleep(0.15)
-        ss = build_startstream(USER_ID, CHANNELS, stream_id=1)
-        log(f"-> startStream (1003) len={len(ss)} streamId=1  [THE video trigger]")
+        ss = build_startstream(USER_ID, CHANNELS, stream_id=1, sensor=SENSOR)
+        log(f"-> startStream (1003) len={len(ss)} streamId=1 sensor={SENSOR}  [THE video trigger]")
         oracle.push_send(1, ss)
 
     async def stats_loop():

@@ -176,3 +176,37 @@ def test_cli_missing_file_exits_cleanly(tmp_path):
     assert result.returncode == 1
     assert "Traceback" not in result.stderr
     assert "--discover" in result.stderr
+
+
+def test_dual_lens_camera_adds_wide_lens_stream():
+    cams = [
+        {**camera(0, "Garage", "A"), "dev_type": 301},
+        {**camera(1, "Shed", "B"), "dev_type": "311"},
+        {**camera(2, "Porch", "C"), "sensor_num": 2},
+        camera(3, "Doorbell", "D"),
+    ]
+    named, _ = gen.assign_names(gen.validate_manifest(manifest(*cams)), {})
+    streams = yaml.safe_load(gen.render_config(named, **AUTH))["streams"]
+    assert set(streams) == {
+        "eufy_garage", "eufy_garage_wide", "eufy_shed", "eufy_shed_wide",
+        "eufy_porch", "eufy_porch_wide", "eufy_doorbell",
+    }
+    # The original stream stays on the default (PTZ) lens; the wide one asks for sensor 0.
+    assert "--sensor" not in streams["eufy_garage"]
+    assert streams["eufy_garage_wide"].startswith("exec:python eufy_run.py 0 --sensor 0 --rtsp {output}")
+
+
+def test_excluding_a_camera_excludes_both_lenses_and_wide_can_be_excluded_alone():
+    cams = [{**camera(0, "Front door", "A"), "dev_type": 301}, {**camera(1, "Garage", "B"), "dev_type": 301}]
+    named, _ = gen.assign_names(gen.validate_manifest(manifest(*cams)), {})
+    with patch.object(gen, "EXCLUDED_STREAMS", frozenset({"eufy_front_door", "eufy_garage_wide"})):
+        streams = yaml.safe_load(gen.render_config(named, **AUTH))["streams"]
+    assert set(streams) == {"eufy_garage"}
+
+
+def test_wide_stream_never_shadows_a_real_camera_name():
+    cams = [{**camera(0, "Garage", "A"), "dev_type": 301}, camera(1, "Garage wide", "B")]
+    named, _ = gen.assign_names(gen.validate_manifest(manifest(*cams)), {})
+    streams = yaml.safe_load(gen.render_config(named, **AUTH))["streams"]
+    assert set(streams) == {"eufy_garage", "eufy_garage_wide"}
+    assert streams["eufy_garage_wide"].startswith("exec:python eufy_run.py 1 --rtsp")

@@ -79,6 +79,9 @@ For these commands the payload is JSON: `{"account_id":<user_id>, "cmd":<sub-cmd
      "chn_list":[{"index":0,"chn":0,"sensor":1}]}}
   ```
   `entrytype:1` = live (2 = preset). `streamtype` selects the profile. `chn_list` = channels to stream.
+  Each `chn_list` entry also picks a lens with `sensor`: on dual-lens S4 PoE cams (dev_type 301/311,
+  `sensor_num` 2) `1` is the PTZ lens and `0` the fixed wide lens. The web client shows both at once with
+  `stitch_mode` 5 (split screen) or 7 (picture-in-picture) and two `chn_list` entries.
 - **`cmd 1004` (closeLive)** — same envelope, empty payload.
 - **Heartbeat (`cmd 1139`)** — 36 **raw** bytes (not PTCS-framed) on `WebrtcDataChannel` every ~15 s:
   `[20-byte struct: 00 09 00 00, u16 16 @4, 0x63 @12][16-byte XZYH(1139, dev_type 2)]`. Needed to *sustain*

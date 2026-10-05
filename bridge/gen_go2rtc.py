@@ -31,6 +31,38 @@ def is_published(name: str, camera: dict[str, Any]) -> bool:
     return camera.get("status") != 0 and name not in EXCLUDED_STREAMS
 
 
+# Dual-lens cameras (the S4 PoE cams, dev_type 301/311, as eufy's web client
+# treats them) have a PTZ lens (sensor 1, the original stream) and a fixed wide
+# lens (sensor 0), published as "<name>_wide". Excluding a camera excludes both.
+DUAL_LENS_DEV_TYPES = frozenset({301, 311})
+WIDE_SUFFIX = "_wide"
+WIDE_SENSOR = 0
+
+
+def is_dual_lens(camera: dict[str, Any]) -> bool:
+    try:
+        dev_type = int(camera.get("dev_type"))
+    except (TypeError, ValueError):
+        dev_type = None
+    return camera.get("sensor_num") == 2 or dev_type in DUAL_LENS_DEV_TYPES
+
+
+def published_streams(
+    named: list[tuple[str, dict[str, Any]]],
+) -> list[tuple[str, int, int | None]]:
+    """Return (stream name, channel, sensor) per published lens; None = default lens."""
+    taken = {name for name, _ in named}
+    streams: list[tuple[str, int, int | None]] = []
+    for name, camera in named:
+        if not is_published(name, camera):
+            continue
+        streams.append((name, camera["channel"], None))
+        wide = name + WIDE_SUFFIX
+        if is_dual_lens(camera) and wide not in taken and wide not in EXCLUDED_STREAMS:
+            streams.append((wide, camera["channel"], WIDE_SENSOR))
+    return streams
+
+
 def slug(name: str | None, channel: int) -> str:
     value = re.sub(r"[^a-z0-9]+", "_", (name or f"ch{channel}").lower()).strip("_")
     return "eufy_" + (value or f"ch{channel}")
@@ -153,7 +185,7 @@ def render_config(
         raise ValueError("EUFY_STREAM_START_TIMEOUT must be between 1 and 300 seconds")
     username, password = validate_credentials(username, password)
 
-    online = [(name, camera) for name, camera in named if is_published(name, camera)]
+    online = published_streams(named)
     lines = [
         "# Generated from validated discovery state. Online, on-demand streams.",
         "app:",
@@ -161,9 +193,10 @@ def render_config(
         "",
         "streams:" if online else "streams: {}",
     ]
-    for name, camera in online:
+    for name, channel, sensor in online:
+        lens = "" if sensor is None else f" --sensor {sensor}"
         command = (
-            f"exec:python eufy_run.py {camera['channel']} --rtsp {{output}}"
+            f"exec:python eufy_run.py {channel}{lens} --rtsp {{output}}"
             f"#starttimeout={STREAM_START_TIMEOUT}#killsignal=2#killtimeout=5"
         )
         lines.append(f"  {name}: {json.dumps(command)}")
