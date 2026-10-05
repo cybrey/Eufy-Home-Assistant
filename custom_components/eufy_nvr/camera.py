@@ -10,11 +10,19 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.camera import Camera, CameraEntityFeature
+from homeassistant.components.camera import (
+    Camera,
+    CameraEntityFeature,
+    WebRTCAnswer,
+    WebRTCCandidate,
+    WebRTCError,
+    WebRTCSendMessage,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from webrtc_models import RTCIceCandidateInit
 
 from . import EufyNvrConfigEntry
 from .const import (
@@ -29,8 +37,11 @@ from .const import (
 )
 from .coordinator import EufyNvrCoordinator
 from .go2rtc_api import STREAM_PREFIX, api_base_url, rtsp_url, stream_summary
+from .webrtc import WebRtcSession, ice_servers_payload
 
 _LOGGER = logging.getLogger(__name__)
+
+WEBRTC_ERROR = "eufy_nvr_webrtc_failed"
 
 
 def _friendly_name(stream: str) -> str:
@@ -98,6 +109,7 @@ class EufyNvrCamera(CoordinatorEntity[EufyNvrCoordinator], Camera):
         self._stream_source = rtsp_url(
             host, rtsp_port, stream, username, password
         )
+        self._webrtc_sessions: dict[str, WebRtcSession] = {}
 
         self._attr_name = _friendly_name(stream)
         # Stable across host/port edits so history/automations survive a reconfig.
@@ -121,6 +133,56 @@ class EufyNvrCamera(CoordinatorEntity[EufyNvrCoordinator], Camera):
         """Return the RTSP URL HA's stream component should pull."""
         return self._stream_source
 
+    async def async_handle_async_webrtc_offer(
+        self, offer_sdp: str, session_id: str, send_message: WebRTCSendMessage
+    ) -> None:
+        """Hand the viewer straight to the add-on's go2rtc.
+
+        Implementing WebRTC natively stops Home Assistant offering HLS. Its HLS
+        worker holds an RTSP consumer after the viewer closes, which keeps the
+        NVR's single live session busy and stalls the next camera.
+        """
+        if not self.available:
+            send_message(WebRTCError(WEBRTC_ERROR, "Eufy stream is unavailable"))
+            return
+
+        session: WebRtcSession
+
+        @callback
+        def _forget() -> None:
+            if self._webrtc_sessions.get(session_id) is session:
+                del self._webrtc_sessions[session_id]
+
+        session = WebRtcSession(
+            lambda: self.coordinator.async_open_webrtc(self._stream),
+            on_answer=lambda sdp: send_message(WebRTCAnswer(sdp)),
+            on_candidate=lambda candidate: send_message(
+                WebRTCCandidate(RTCIceCandidateInit(candidate))
+            ),
+            on_error=lambda message: send_message(
+                WebRTCError(WEBRTC_ERROR, message)
+            ),
+            on_closed=_forget,
+        )
+        self._webrtc_sessions[session_id] = session
+        config = self.async_get_webrtc_client_configuration()
+        await session.async_start(
+            offer_sdp, ice_servers_payload(config.configuration.ice_servers)
+        )
+
+    async def async_on_webrtc_candidate(
+        self, session_id: str, candidate: RTCIceCandidateInit
+    ) -> None:
+        """Forward a browser ICE candidate to go2rtc."""
+        if session := self._webrtc_sessions.get(session_id):
+            await session.async_send_candidate(candidate.candidate)
+
+    @callback
+    def close_webrtc_session(self, session_id: str) -> None:
+        """Release the NVR as soon as the viewer goes away."""
+        if session := self._webrtc_sessions.pop(session_id, None):
+            self.hass.async_create_task(session.async_close())
+
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
     ) -> bytes | None:
@@ -140,8 +202,12 @@ class EufyNvrCamera(CoordinatorEntity[EufyNvrCoordinator], Camera):
             return None
 
     async def async_will_remove_from_hass(self) -> None:
-        """Drop in-memory images when the integration unloads."""
+        """Drop in-memory images and live viewers when the integration unloads."""
         self.coordinator.discard_frame(self._stream)
+        sessions = list(self._webrtc_sessions.values())
+        self._webrtc_sessions.clear()
+        for session in sessions:
+            await session.async_close()
         await super().async_will_remove_from_hass()
 
     @property

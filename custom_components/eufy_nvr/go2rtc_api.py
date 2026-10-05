@@ -9,6 +9,7 @@ from urllib.parse import quote, urlsplit
 
 API_STREAMS_PATH = "/api/streams"
 API_FRAME_PATH = "/api/frame.jpeg"
+API_WS_PATH = "/api/ws"
 STREAM_PREFIX = "eufy_"
 MAX_FRAME_BYTES = 20 * 1024 * 1024
 
@@ -143,6 +144,11 @@ def frame_url(host: str, port: int) -> str:
     return f"{api_base_url(host, port)}{API_FRAME_PATH}"
 
 
+def ws_url(host: str, port: int) -> str:
+    """Build the go2rtc WebSocket (WebRTC signaling) URL without query data."""
+    return f"{api_base_url(host, port)}{API_WS_PATH}"
+
+
 def rtsp_url(
     host: str, port: int, stream: str, username: str, password: str
 ) -> str:
@@ -216,6 +222,7 @@ class Go2RtcClient:
         username, password = validate_credentials(username, password)
         self.url = api_url(self.host, self.api_port)
         self.frame_url = frame_url(self.host, self.api_port)
+        self.ws_url = ws_url(self.host, self.api_port)
         self.total_stream_count = 0
         self._session = session
         self._timeout = timeout
@@ -251,6 +258,17 @@ class Go2RtcClient:
             raise Go2RtcPayloadError(
                 f"unexpected go2rtc response from {self.url}"
             ) from err
+
+    async def async_open_webrtc(self, stream: str) -> Any:
+        """Open a go2rtc WebSocket that will consume ``stream`` over WebRTC."""
+        if not isinstance(stream, str) or not stream.startswith(STREAM_PREFIX):
+            raise Go2RtcPayloadError("invalid Eufy stream name")
+        return await self._session.ws_connect(
+            self.ws_url,
+            params={"src": stream},
+            headers=self._headers,
+            heartbeat=30,
+        )
 
     async def async_get_frame(
         self, stream: str, *, timeout: float | None = None

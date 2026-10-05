@@ -40,6 +40,9 @@ class EndpointTest(unittest.TestCase):
             ),
             "rtsp://eufy:0123456789abcdef@[fd00::10]:8554/eufy_front_gate",
         )
+        self.assertEqual(
+            api.ws_url("192.168.1.177", 1985), "http://192.168.1.177:1985/api/ws"
+        )
 
     def test_rejects_invalid_ports(self):
         for port in (0, 65536, "1984"):

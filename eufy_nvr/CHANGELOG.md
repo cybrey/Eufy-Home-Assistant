@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.22
+
+- Integration: camera live view now uses WebRTC straight from the add-on's go2rtc. Home Assistant no longer
+  offers HLS for these cameras; its HLS worker kept the stream open after the viewer closed, holding the NVR's
+  single live session so the next camera waited up to 90 s. Closing a view now frees the NVR immediately.
+  No add-on code changes.
+
 ## 0.7.21
 
 - Timestamp video on arrival instead of assuming 25 fps. The NVR sends ~10 fps, so stream time ran at 0.4x real
