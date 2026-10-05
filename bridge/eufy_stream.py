@@ -384,8 +384,13 @@ async def main():
             # HA's camera proxy has a hard 10-second image timeout and the NVR's
             # WebRTC handshake already consumes most of it on a cold start.
             "-probesize", "32", "-analyzeduration", "0",
-            "-f", "hevc", "-r", "25", "-i", "pipe:",
-            *vcodec, "-rtsp_transport", "tcp", "-f", "rtsp", RTSP_URL,
+            # Stamp frames on arrival. The NVR delivers ~10 fps; the old fixed
+            # "-r 25" made stream time run at 0.4x wall clock, so low-latency
+            # players (HA WebRTC/HLS) stalled on the first frame.
+            "-use_wallclock_as_timestamps", "1",
+            "-f", "hevc", "-i", "pipe:",
+            *vcodec, "-fps_mode", "passthrough",
+            "-rtsp_transport", "tcp", "-f", "rtsp", RTSP_URL,
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL)
         sink = ffmpeg_proc.stdin
