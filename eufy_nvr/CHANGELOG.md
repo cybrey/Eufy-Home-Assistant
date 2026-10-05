@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.27
+
+- Integration: new option "Preview refresh interval" (Settings > Devices & services > Eufy NVR > Configure).
+  Dashboard previews refresh every 2 minutes by default (was a fixed 15 minutes); range 30 s to 15 min.
+  No add-on code changes.
+
 ## 0.7.26
 
 - Add-on: stop discarding the opening keyframe. ffmpeg ran with `-fflags nobuffer`, which drops the packets it

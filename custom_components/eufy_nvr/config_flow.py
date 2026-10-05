@@ -12,7 +12,13 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -20,12 +26,16 @@ from .const import (
     CONF_HOST,
     CONF_PASSWORD,
     CONF_RTSP_PORT,
+    CONF_SNAPSHOT_REFRESH,
     CONF_USERNAME,
     DEFAULT_API_PORT,
     DEFAULT_HOST,
     DEFAULT_RTSP_PORT,
+    DEFAULT_SNAPSHOT_REFRESH,
     DEFAULT_USERNAME,
     DOMAIN,
+    MAX_SNAPSHOT_REFRESH,
+    MIN_SNAPSHOT_REFRESH,
     REQUEST_TIMEOUT,
 )
 from .go2rtc_api import (
@@ -125,6 +135,12 @@ class EufyNvrConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the config + reconfigure flow."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Expose the dashboard preview refresh interval."""
+        return EufyNvrOptionsFlow()
 
     def _endpoint_in_use(
         self, host: str, port: int, *, exclude_entry_id: str | None = None
@@ -283,6 +299,32 @@ class EufyNvrConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=_credentials_schema(user_input or entry.data),
             errors=errors,
+        )
+
+
+class EufyNvrOptionsFlow(OptionsFlow):
+    """Let the user trade preview freshness against NVR session time."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show and save the preview refresh interval."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SNAPSHOT_REFRESH, DEFAULT_SNAPSHOT_REFRESH
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_SNAPSHOT_REFRESH, default=current): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_SNAPSHOT_REFRESH, max=MAX_SNAPSHOT_REFRESH),
+                    ),
+                }
+            ),
         )
 
 

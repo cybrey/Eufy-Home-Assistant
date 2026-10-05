@@ -21,10 +21,13 @@ from .const import (
     CONF_API_PORT,
     CONF_HOST,
     CONF_PASSWORD,
+    CONF_SNAPSHOT_REFRESH,
     CONF_USERNAME,
+    DEFAULT_SNAPSHOT_REFRESH,
     DOMAIN,
-    FRAME_CACHE_TTL,
     FRAME_FAILURE_COOLDOWN,
+    MAX_SNAPSHOT_REFRESH,
+    MIN_SNAPSHOT_REFRESH,
     FRAME_INITIAL_TIMEOUT,
     FRAME_PRIME_INTERVAL,
     FRAME_PRIME_RETRY_INITIAL,
@@ -61,8 +64,10 @@ class EufyNvrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         )
         self.host = self._client.host
         self.api_port = self._client.api_port
+        refresh = entry.options.get(CONF_SNAPSHOT_REFRESH, DEFAULT_SNAPSHOT_REFRESH)
+        refresh = min(max(int(refresh), MIN_SNAPSHOT_REFRESH), MAX_SNAPSHOT_REFRESH)
         self._frame_cache = SnapshotCache(
-            ttl=FRAME_CACHE_TTL,
+            ttl=float(refresh),
             stale_ttl=FRAME_STALE_TTL,
             timeout=FRAME_INITIAL_TIMEOUT,
             failure_ttl=FRAME_FAILURE_COOLDOWN,
