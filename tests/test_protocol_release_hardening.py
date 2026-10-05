@@ -28,7 +28,7 @@ def test_go2rtc_generation_is_restricted_and_tolerates_cold_start():
     source = (ROOT / "bridge/gen_go2rtc.py").read_text()
     assert "starttimeout=" in source
     assert "killsignal=2#killtimeout=5" in source
-    assert "modules: [api, rtsp, webrtc, exec, mjpeg, mpegts]" in source
+    assert "modules: [api, ws, rtsp, webrtc, exec, mjpeg, mpegts]" in source
     assert "allow_paths: [python]" in source
     assert "/api/streams" in source
     assert "/api/frame.jpeg" in source

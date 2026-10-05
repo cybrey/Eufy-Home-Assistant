@@ -157,7 +157,7 @@ def render_config(
     lines = [
         "# Generated from validated discovery state. Online, on-demand streams.",
         "app:",
-        "  modules: [api, rtsp, webrtc, exec, mjpeg, mpegts]",
+        "  modules: [api, ws, rtsp, webrtc, exec, mjpeg, mpegts]",
         "",
         "streams:" if online else "streams: {}",
     ]
