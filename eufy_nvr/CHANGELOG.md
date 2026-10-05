@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.20
+
+- Integration: dashboard thumbnails are cached for 15 minutes (was 30 seconds) and a failed capture waits 60 s
+  before retrying (was 0.5 s). Each refresh opened the NVR's single live session, so a dashboard of camera
+  cards kept preempting the camera being watched and live view never settled. No add-on code changes.
+
 ## 0.7.19
 
 - New `exclude_streams` option: comma-separated stream names (e.g. `eufy_front_door`) left out of go2rtc, so a

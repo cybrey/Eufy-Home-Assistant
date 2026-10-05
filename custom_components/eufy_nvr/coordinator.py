@@ -24,6 +24,7 @@ from .const import (
     CONF_USERNAME,
     DOMAIN,
     FRAME_CACHE_TTL,
+    FRAME_FAILURE_COOLDOWN,
     FRAME_INITIAL_TIMEOUT,
     FRAME_PRIME_INTERVAL,
     FRAME_PRIME_RETRY_INITIAL,
@@ -64,6 +65,8 @@ class EufyNvrCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             ttl=FRAME_CACHE_TTL,
             stale_ttl=FRAME_STALE_TTL,
             timeout=FRAME_INITIAL_TIMEOUT,
+            failure_ttl=FRAME_FAILURE_COOLDOWN,
+            max_entries=8,
         )
         self._primed_streams: set[str] = set()
 

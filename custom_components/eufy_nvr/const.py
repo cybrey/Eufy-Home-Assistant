@@ -38,7 +38,12 @@ REQUEST_TIMEOUT = 10
 # Seed one bounded stale thumbnail per camera after setup. Refreshing every
 # 30 minutes keeps the cold-start fallback useful without continuously cycling
 # the NVR's single hardware session.
-FRAME_CACHE_TTL = 30.0
+# Dashboard thumbnails are served from cache for this long. Each refresh opens the
+# NVR's single live session and preempts whatever is being watched, so this must be
+# minutes, not seconds.
+FRAME_CACHE_TTL = 15.0 * 60.0
+# After a failed capture, keep the old image this long before trying again.
+FRAME_FAILURE_COOLDOWN = 60.0
 FRAME_STALE_TTL = 60.0 * 60.0
 # Startup seeding waits through a full go2rtc/Eufy retry window per camera while
 # a total setup ceiling prevents a cloud outage from blocking the integration
