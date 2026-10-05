@@ -111,3 +111,11 @@ def test_preview_refresh_is_an_option_with_safe_bounds():
     for path in ("strings.json", "translations/en.json"):
         strings = json.loads((ROOT / "custom_components/eufy_nvr" / path).read_text())
         assert "snapshot_refresh_seconds" in strings["options"]["step"]["init"]["data"]
+
+
+def test_engine_selects_lens_with_sensor_argument():
+    stream = (ROOT / "bridge/eufy_stream.py").read_text()
+    assert 'def build_startstream(user_id, channels, stream_id=1, sensor=1):' in stream
+    assert '"sensor": sensor' in stream
+    assert "build_startstream(USER_ID, CHANNELS, stream_id=1, sensor=SENSOR)" in stream
+    assert "del sys.argv[_sensor_at:_sensor_at + 2]" in stream
