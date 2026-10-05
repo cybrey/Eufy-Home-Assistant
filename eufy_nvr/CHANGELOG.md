@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.26
+
+- Add-on: stop discarding the opening keyframe. ffmpeg ran with `-fflags nobuffer`, which drops the packets it
+  probes, so snapshots and the start of live view were grey with speckles until the next NVR keyframe.
+
 ## 0.7.25
 
 - Integration: the snapshot primer runs as a background task. It loops forever, and as a normal task it held
